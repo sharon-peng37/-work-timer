@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>工單計時系統 - 員工版</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
@@ -497,6 +497,13 @@
         padding: 30px 20px;
       }
     }
+
+    .qrcode-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0;
+    }
   </style>
 </head>
 <body>
@@ -506,14 +513,14 @@
     
     <div class="login-tabs">
       <button class="login-tab active" onclick="switchLoginTab('manual')">📝 手動輸入</button>
-      <button class="login-tab" onclick="switchLoginTab('scan')">📷 掃描條碼</button>
+      <button class="login-tab" onclick="switchLoginTab('scan')">📷 掃描 QR Code</button>
     </div>
 
     <!-- 手動輸入登入 -->
     <div id="manualLogin" class="login-content active">
       <div class="form-group">
         <label>員工工號 *</label>
-        <input type="text" id="empId" placeholder="例如: E001">
+        <input type="text" id="empId" placeholder="例如: A2005">
       </div>
       <div class="form-group">
         <label>部門代號 *</label>
@@ -528,16 +535,16 @@
       </div>
       <div class="form-group">
         <label>員工姓名 *</label>
-        <input type="text" id="empName" placeholder="例如: 王小明">
+        <input type="text" id="empName" placeholder="例如: 林美麗">
       </div>
       <button class="btn-primary" onclick="manualLogin()" style="width: 100%; margin-top: 20px;">
         ✓ 登入系統
       </button>
     </div>
 
-    <!-- 掃描條碼登入 -->
+    <!-- 掃描 QR Code 登入 -->
     <div id="scanLogin" class="login-content">
-      <div class="status" id="loginStatus">請點擊下方按鈕開始掃描員工證</div>
+      <div class="status" id="loginStatus">請點擊下方按鈕開始掃描員工證 QR Code</div>
       <button class="btn-start" onclick="startEmployeeScanner()" style="width: 100%; margin-bottom: 10px;">
         📷 開始掃描員工證
       </button>
@@ -553,27 +560,27 @@
     <!-- 員工資訊卡片 -->
     <div class="user-info">
       <div class="user-details">
-        <h3 id="displayName">王小明</h3>
-        <p id="displayEmpId">工號: E001</p>
-        <p id="displayDept">部門: SMT (CM03)</p>
+        <h3 id="displayName">員工姓名</h3>
+        <p id="displayEmpId">工號: ---</p>
+        <p id="displayDept">部門: ---</p>
       </div>
       <button class="btn-logout" onclick="logout()">🚪 登出</button>
     </div>
 
     <h1>📦 工單計時系統</h1>
-    <p class="subtitle">員工版 - 含條碼生成器</p>
+    <p class="subtitle">員工版 - 支援 QR Code 掃描</p>
 
     <div class="tabs">
       <button class="tab active" onclick="switchTab('generate')">🏷️ 生成條碼</button>
       <button class="tab" onclick="switchTab('scan')">📷 掃描計時</button>
       <button class="tab" onclick="switchTab('records')">📊 工作記錄</button>
-      <button class="tab" onclick="switchTab('empBarcode')">👤 員工條碼</button>
+      <button class="tab" onclick="switchTab('empBarcode')">👤 員工 QR Code</button>
     </div>
 
     <!-- 生成工單條碼 -->
     <div id="generate" class="tab-content active">
       <div class="barcode-generator">
-        <h2>產生測試條碼</h2>
+        <h2>產生工單條碼</h2>
         <div class="form-group">
           <label>工單號碼:</label>
           <input type="text" id="workOrderInput" placeholder="例如: WO20240204001">
@@ -603,17 +610,17 @@
       <div id="recordsTable"></div>
     </div>
 
-    <!-- 員工條碼生成 -->
+    <!-- 員工 QR Code 生成 -->
     <div id="empBarcode" class="tab-content">
       <div class="barcode-generator">
-        <h2>產生員工條碼</h2>
+        <h2>產生員工 QR Code</h2>
         <p style="color: #666; margin-bottom: 20px;">
-          員工條碼格式: EMP-工號-部門-姓名<br>
-          例如: EMP-E001-CM03-王小明
+          員工 QR Code 格式: EMP-工號-部門-姓名<br>
+          例如: EMP-A2005-CM03-林美麗
         </p>
         <div class="form-group">
           <label>員工工號:</label>
-          <input type="text" id="empBarcodeId" placeholder="例如: E001">
+          <input type="text" id="empBarcodeId" placeholder="例如: A2005">
         </div>
         <div class="form-group">
           <label>部門代號:</label>
@@ -627,9 +634,9 @@
         </div>
         <div class="form-group">
           <label>員工姓名:</label>
-          <input type="text" id="empBarcodeName" placeholder="例如: 王小明">
+          <input type="text" id="empBarcodeName" placeholder="例如: 林美麗">
         </div>
-        <button class="btn-primary" onclick="generateEmployeeBarcode()">生成員工條碼</button>
+        <button class="btn-primary" onclick="generateEmployeeBarcode()">生成員工 QR Code</button>
       </div>
       <div id="empBarcodeList" class="barcode-list"></div>
     </div>
@@ -651,6 +658,7 @@
 
   <div class="print-area" id="printArea"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
   <script>
     let html5QrCode;
     let employeeScanner;
@@ -704,6 +712,7 @@
         statusEl.textContent = '正在請求相機權限...';
         statusEl.className = 'status scanning';
 
+        // 請求相機權限
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: "environment" } 
         });
@@ -724,7 +733,7 @@
         );
 
         isEmployeeScanning = true;
-        statusEl.textContent = '✅ 掃描中...請對準員工證條碼';
+        statusEl.textContent = '✅ 掃描中...請對準員工證 QR Code';
         statusEl.className = 'status success';
         
       } catch (err) {
@@ -740,6 +749,9 @@
           document.getElementById('loginStatus').textContent = '已停止掃描';
           document.getElementById('loginStatus').className = 'status';
           isEmployeeScanning = false;
+        }).catch(err => {
+          console.error('停止掃描失敗:', err);
+          isEmployeeScanning = false;
         });
       }
     }
@@ -748,18 +760,26 @@
       console.log("掃描到員工證:", decodedText);
       stopEmployeeScanner();
 
+      // 解析員工 QR Code: EMP-A2005-CM03-林美麗
       if (decodedText.startsWith('EMP-')) {
         const parts = decodedText.split('-');
-        if (parts.length === 4) {
+        console.log("解析結果:", parts);
+        
+        if (parts.length >= 4) {
           const empId = parts[1];
           const deptCode = parts[2];
-          const empName = parts[3];
+          // 姓名可能包含多個部分(如果姓名中有-)
+          const empName = parts.slice(3).join('-');
+          
+          console.log(`工號: ${empId}, 部門: ${deptCode}, 姓名: ${empName}`);
           performLogin(empId, deptCode, empName);
         } else {
-          alert('❌ 員工條碼格式錯誤!');
+          alert('❌ 員工 QR Code 格式錯誤!\n請確認格式為: EMP-工號-部門-姓名');
+          console.error('格式錯誤,parts:', parts);
         }
       } else {
-        alert('❌ 這不是有效的員工條碼!');
+        alert('❌ 這不是有效的員工 QR Code!\n請掃描員工證上的 QR Code');
+        console.error('不是員工QR Code:', decodedText);
       }
     }
 
@@ -919,8 +939,24 @@
         barcodeData = generatedBarcodes[index];
         title = '工單條碼';
       } else {
-        barcodeData = employeeBarcodes[index];
-        title = '員工條碼';
+        const qrcodeData = employeeBarcodes[index];
+        printArea.innerHTML = `
+          <div style="text-align: center; padding: 50px;">
+            <h2>員工 QR Code</h2>
+            <div id="print-qrcode" style="display: flex; justify-content: center;"></div>
+            <p style="margin-top: 20px; font-size: 18px;">${qrcodeData}</p>
+          </div>
+        `;
+        
+        setTimeout(() => {
+          new QRCode(document.getElementById('print-qrcode'), {
+            text: qrcodeData,
+            width: 300,
+            height: 300
+          });
+          setTimeout(() => window.print(), 500);
+        }, 100);
+        return;
       }
       
       printArea.innerHTML = `
@@ -943,7 +979,7 @@
       window.print();
     }
 
-    // ========== 員工條碼生成 ==========
+    // ========== 員工 QR Code 生成 ==========
     function generateEmployeeBarcode() {
       const empId = document.getElementById('empBarcodeId').value.trim();
       const deptCode = document.getElementById('empBarcodeDept').value;
@@ -957,7 +993,7 @@
       const empBarcode = `EMP-${empId}-${deptCode}-${empName}`;
 
       if (employeeBarcodes.includes(empBarcode)) {
-        alert('此員工條碼已經生成過了!');
+        alert('此員工 QR Code 已經生成過了!');
         return;
       }
 
@@ -972,7 +1008,7 @@
       const container = document.getElementById('empBarcodeList');
       
       if (employeeBarcodes.length === 0) {
-        container.innerHTML = '<div class="empty-state">尚未生成任何員工條碼</div>';
+        container.innerHTML = '<div class="empty-state">尚未生成任何員工 QR Code</div>';
         return;
       }
 
@@ -982,7 +1018,7 @@
         const parts = empBarcode.split('-');
         const empId = parts[1];
         const deptCode = parts[2];
-        const empName = parts[3];
+        const empName = parts.slice(3).join('-');
 
         const deptNames = {
           'CM03': 'SMT',
@@ -996,22 +1032,22 @@
         div.className = 'barcode-item';
         div.innerHTML = `
           <h3>${empName}</h3>
-          <svg id="emp-barcode-${index}"></svg>
+          <div class="qrcode-container" id="emp-qrcode-${index}"></div>
           <p><strong>工號:</strong> ${empId}</p>
           <p><strong>部門:</strong> ${deptNames[deptCode] || deptCode} (${deptCode})</p>
-          <button class="btn-primary" onclick="printBarcode(${index}, 'emp')">🖨️ 列印條碼</button>
+          <button class="btn-primary" onclick="printBarcode(${index}, 'emp')">🖨️ 列印 QR Code</button>
           <button class="btn-stop" onclick="removeEmployeeBarcode(${index})">🗑️ 刪除</button>
         `;
         container.appendChild(div);
 
-        JsBarcode(`#emp-barcode-${index}`, empBarcode, {
-          format: "CODE128",
-          width: 2,
-          height: 80,
-          displayValue: true,
-          fontSize: 14,
-          margin: 10
-        });
+        setTimeout(() => {
+          new QRCode(document.getElementById(`emp-qrcode-${index}`), {
+            text: empBarcode,
+            width: 200,
+            height: 200,
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        }, 100 * index);
       });
       
       saveData();
@@ -1079,7 +1115,7 @@
         );
 
         isScanning = true;
-        statusEl.textContent = '✅ 掃描中...請對準條碼';
+        statusEl.textContent = '✅ 掃描中...請對準工單條碼或 QR Code';
         statusEl.className = 'status success';
         
       } catch (err) {
@@ -1107,7 +1143,7 @@
       console.log("掃描到:", decodedText);
       
       if (decodedText.startsWith('EMP-')) {
-        alert('這是員工條碼,請掃描工單條碼!');
+        alert('這是員工 QR Code,請掃描工單條碼!');
         return;
       }
 
