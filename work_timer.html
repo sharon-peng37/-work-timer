@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工單計時系統 - 測試版</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Microsoft JhengHei', Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .tab {
+      padding: 15px 30px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      color: #666;
+      transition: all 0.3s;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab:hover {
+      color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: bold;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+    }
+
+    .btn-start {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-start:hover {
+      background: #45a049;
+    }
+
+    .btn-stop {
+      background: #f44336;
+      color: white;
+    }
+
+    .btn-stop:hover {
+      background: #da190b;
+    }
+
+    .btn-export {
+      background: #2196F3;
+      color: white;
+    }
+
+    .btn-export:hover {
+      background: #0b7dda;
+    }
+
+    .btn-clear {
+      background: #ff9800;
+      color: white;
+    }
+
+    #reader {
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .status {
+      padding: 15px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .status.scanning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    /* 條碼生成區 */
+    .barcode-generator {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .barcode-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .barcode-item {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid #ddd;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .barcode-item h3 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .barcode-item svg {
+      margin: 15px 0;
+    }
+
+    .barcode-item button {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background: #667eea;
+      color: white;
+      font-weight: bold;
+    }
+
+    tr:hover {
+      background: #f5f5f5;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      text-align: center;
+      max-width: 400px;
+      animation: slideIn 0.3s;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .modal h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .modal p {
+      font-size: 18px;
+      margin: 15px 0;
+      color: #666;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+      justify-content: center;
+    }
+
+    .modal button {
+      flex: 1;
+      padding: 15px;
+      font-size: 16px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .print-area {
+      display: none;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .print-area, .print-area * {
+        visibility: visible;
+      }
+      .print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📦 工單計時系統</h1>
+    <p class="subtitle">測試版 - 含條碼生成器</p>
+
+    <!-- 分頁標籤 -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('generate')">🏷️ 生成條碼</button>
+      <button class="tab" onclick="switchTab('scan')">📷 掃描計時</button>
+      <button class="tab" onclick="switchTab('records')">📊 工作記錄</button>
+    </div>
+
+    <!-- 分頁 1: 生成條碼 -->
+    <div id="generate" class="tab-content active">
+      <div class="barcode-generator">
+        <h2>產生測試條碼</h2>
+        <div class="form-group">
+          <label>工單號碼:</label>
+          <input type="text" id="workOrderInput" placeholder="例如: WO20240204001">
+        </div>
+        <button class="btn-primary" onclick="generateBarcode()">生成條碼</button>
+        <button class="btn-primary" onclick="generateMultiple()">生成5個測試條碼</button>
+      </div>
+
+      <div id="barcodeList" class="barcode-list"></div>
+    </div>
+
+    <!-- 分頁 2: 掃描計時 -->
+    <div id="scan" class="tab-content">
+      <div class="controls">
+        <button class="btn-start" onclick="startScanner()">🎥 開始掃描</button>
+        <button class="btn-stop" onclick="stopScanner()">⏹️ 停止掃描</button>
+      </div>
+
+      <div class="status" id="status">請點擊「開始掃描」</div>
+      <div id="reader"></div>
+    </div>
+
+    <!-- 分頁 3: 工作記錄 -->
+    <div id="records" class="tab-content">
+      <div class="controls">
+        <button class="btn-export" onclick="exportToExcel()">📥 匯出 Excel</button>
+        <button class="btn-clear" onclick="clearData()">🗑️ 清空資料</button>
+      </div>
+      <div id="recordsTable"></div>
+    </div>
+  </div>
+
+  <!-- 確認對話框 -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h2 id="modalTitle"></h2>
+      <p id="modalWorkOrder"></p>
+      <p id="modalTime"></p>
+      <div class="modal-buttons">
+        <button class="btn-start" onclick="confirmAction(true)">✓ 確認</button>
+        <button class="btn-stop" onclick="confirmAction(false)">✗ 取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 列印區域 -->
+  <div class="print-area" id="printArea"></div>
+
+  <script>
+    let html5QrCode;
+    let workRecords = [];
+    let currentScan = null;
+    let generatedBarcodes = [];
+
+    // ========== 分頁切換 ==========
+    function switchTab(tabName) {
+      // 隱藏所有分頁
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      // 顯示選中的分頁
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+
+      // 如果切換到記錄頁,更新顯示
+      if (tabName === 'records') {
+        displayRecords();
+      }
+    }
+
+    // ========== 條碼生成 ==========
+    function generateBarcode() {
+      const input = document.getElementById('workOrderInput');
+      const workOrderNo = input.value.trim();
+
+      if (!workOrderNo) {
+        alert('請輸入工單號!');
+        return;
+      }
+
+      addBarcodeToList(workOrderNo);
+      input.value = '';
+    }
+
+    function generateMultiple() {
+      const today = new Date();
+      const dateStr = today.getFullYear() + 
+                     String(today.getMonth() + 1).padStart(2, '0') + 
+                     String(today.getDate()).padStart(2, '0');
+
+      for (let i = 1; i <= 5; i++) {
+        const workOrderNo = `WO${dateStr}${String(i).padStart(3, '0')}`;
+        addBarcodeToList(workOrderNo);
+      }
+    }
+
+    function addBarcodeToList(workOrderNo) {
+      // 檢查是否已存在
+      if (generatedBarcodes.includes(workOrderNo)) {
+        alert('此工單號已經生成過了!');
+        return;
+      }
+
+      generatedBarcodes.push(workOrderNo);
+      displayBarcodes();
+    }
+
+    function displayBarcodes() {
+      const container = document.getElementById('barcodeList');
+      
+      if (generatedBarcodes.length === 0) {
+        container.innerHTML = '<div class="empty-state">尚未生成任何條碼</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      generatedBarcodes.forEach((workOrderNo, index) => {
+        const div = document.createElement('div');
+        div.className = 'barcode-item';
+        div.innerHTML = `
+          <h3>工單 #${index + 1}</h3>
+          <svg id="barcode-${index}"></svg>
+          <p><strong>${workOrderNo}</strong></p>
+          <button class="btn-primary" onclick="printBarcode(${index})">🖨️ 列印此條碼</button>
+          <button class="btn-stop" onclick="removeBarcode(${index})">🗑️ 刪除</button>
+        `;
+        container.appendChild(div);
+
+        // 生成條碼
+        JsBarcode(`#barcode-${index}`, workOrderNo, {
+          format: "CODE128",
+          width: 2,
+          height: 80,
+          displayValue: true,
+          fontSize: 16,
+          margin: 10
+        });
+      });
+    }
+
+    function removeBarcode(index) {
+      generatedBarcodes.splice(index, 1);
+      displayBarcodes();
+    }
+
+    function printBarcode(index) {
+      const workOrderNo = generatedBarcodes[index];
+      const printArea = document.getElementById('printArea');
+      
+      printArea.innerHTML = `
+        <div style="text-align: center; padding: 50px;">
+          <h2>${workOrderNo}</h2>
+          <svg id="print-barcode"></svg>
+        </div>
+      `;
+
+      JsBarcode('#print-barcode', workOrderNo, {
+        format: "CODE128",
+        width: 3,
+        height: 100,
+        displayValue: true,
+        fontSize: 20,
+        margin: 20
+      });
+
+      window.print();
+    }
+
+    // ========== 掃描功能 ==========
+    function startScanner() {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = '掃描中...請對準條碼';
+      statusEl.className = 'status scanning';
+
+      html5QrCode = new Html5Qrcode("reader");
+      
+      html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 300, height: 150 }
+        },
+        onScanSuccess,
+        onScanError
+      ).catch(err => {
+        alert("無法啟動相機: " + err);
+        statusEl.textContent = '相機啟動失敗';
+        statusEl.className = 'status';
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          document.getElementById('status').textContent = '已停止掃描';
+          document.getElementById('status').className = 'status';
+        });
+      }
+    }
+
+    function onScanSuccess(decodedText) {
+      console.log("掃描到:", decodedText);
+      
+      // 停止掃描
+      stopScanner();
+      
+      // 檢查是否已有此工單的開始記錄
+      const existingRecord = workRecords.find(r => 
+        r.workOrderNo === decodedText && !r.endTime
+      );
+
+      currentScan = {
+        workOrderNo: decodedText,
+        isStart: !existingRecord
+      };
+
+      showModal(decodedText, !existingRecord);
+    }
+
+    function onScanError(error) {
+      // 忽略掃描錯誤(持續掃描中)
+    }
+
+    // ========== 對話框 ==========
+    function showModal(workOrderNo, isStart) {
+      const modal = document.getElementById('modal');
+      const title = document.getElementById('modalTitle');
+      const workOrder = document.getElementById('modalWorkOrder');
+      const time = document.getElementById('modalTime');
+
+      const now = new Date();
+      const timeStr = formatDateTime(now);
+
+      if (isStart) {
+        title.textContent = '⏱️ 開始工作?';
+        workOrder.textContent = `工單號: ${workOrderNo}`;
+        time.textContent = `開始時間: ${timeStr}`;
+      } else {
+        title.textContent = '✅ 結束工作?';
+        workOrder.textContent = `工單號: ${workOrderNo}`;
+        time.textContent = `結束時間: ${timeStr}`;
+      }
+
+      modal.classList.add('show');
+    }
+
+    function confirmAction(confirmed) {
+      const modal = document.getElementById('modal');
+      modal.classList.remove('show');
+
+      if (!confirmed || !currentScan) {
+        currentScan = null;
+        return;
+      }
+
+      const now = new Date();
+      const { workOrderNo, isStart } = currentScan;
+
+      if (isStart) {
+        // 新增開始記錄
+        workRecords.push({
+          workOrderNo: workOrderNo,
+          startTime: now.toISOString(),
+          endTime: null,
+          duration: null
+        });
+        
+        alert(`✓ 已記錄工單 ${workOrderNo} 開始時間`);
+      } else {
+        // 更新結束時間
+        const record = workRecords.find(r => 
+          r.workOrderNo === workOrderNo && !r.endTime
+        );
+        
+        if (record) {
+          record.endTime = now.toISOString();
+          
+          // 計算工作時長
+          const start = new Date(record.startTime);
+          const end = new Date(record.endTime);
+          const durationMs = end - start;
+          const hours = Math.floor(durationMs / 3600000);
+          const minutes = Math.floor((durationMs % 3600000) / 60000);
+          record.duration = `${hours}小時${minutes}分鐘`;
+          
+          alert(`✓ 已記錄工單 ${workOrderNo} 結束時間\n工作時長: ${record.duration}`);
+        }
+      }
+
+      saveData();
+      displayRecords();
+      currentScan = null;
+    }
+
+    // ========== 記錄管理 ==========
+    function displayRecords() {
+      const container = document.getElementById('recordsTable');
+      
+      if (workRecords.length === 0) {
+        container.innerHTML = '<div class="empty-state">尚無工作記錄</div>';
+        return;
+      }
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>工單號</th>
+              <th>開始時間</th>
+              <th>結束時間</th>
+              <th>工作時長</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      // 反向顯示(最新的在上面)
+      for (let i = workRecords.length - 1; i >= 0; i--) {
+        const record = workRecords[i];
+        const status = record.endTime ? '✅ 已完成' : '⏳ 進行中';
+        
+        html += `
+          <tr>
+            <td><strong>${record.workOrderNo}</strong></td>
+            <td>${formatDateTime(new Date(record.startTime))}</td>
+            <td>${record.endTime ? formatDateTime(new Date(record.endTime)) : '-'}</td>
+            <td>${record.duration || '-'}</td>
+            <td>${status}</td>
+          </tr>
+        `;
+      }
+
+      html += `
+          </tbody>
+        </table>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function formatDateTime(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    // ========== 資料儲存 ==========
+    function loadData() {
+      const savedRecords = localStorage.getItem('workRecords');
+      const savedBarcodes = localStorage.getItem('generatedBarcodes');
+      
+      if (savedRecords) {
+        workRecords = JSON.parse(savedRecords);
+      }
+      if (savedBarcodes) {
+        generatedBarcodes = JSON.parse(savedBarcodes);
+        displayBarcodes();
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem('workRecords', JSON.stringify(workRecords));
+      localStorage.setItem('generatedBarcodes', JSON.stringify(generatedBarcodes));
+    }
+
+    // ========== Excel 匯出 ==========
+    function exportToExcel() {
+      if (workRecords.length === 0) {
+        alert('沒有資料可以匯出!');
+        return;
+      }
+
+      const data = workRecords.map(record => ({
+        '工單號': record.workOrderNo,
+        '開始時間': formatDateTime(new Date(record.startTime)),
+        '結束時間': record.endTime ? formatDateTime(new Date(record.endTime)) : '尚未結束',
+        '工作時長': record.duration || '計算中',
+        '狀態': record.endTime ? '已完成' : '進行中'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      ws['!cols'] = [
+        { wch: 15 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 15 },
+        { wch: 10 }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "工作記錄");
+
+      const filename = `工單記錄_${formatDateTime(new Date()).replace(/[: ]/g, '_')}.xlsx`;
+      XLSX.writeFile(wb, filename);
+
+      alert('✓ Excel 檔案已下載!');
+    }
+
+    function clearData() {
+      if (confirm('確定要清空所有記錄嗎?此操作無法復原!')) {
+        workRecords = [];
+        saveData();
+        displayRecords();
+        alert('✓ 已清空所有記錄');
+      }
+    }
+
+    // ========== 初始化 ==========
+    window.onload = function() {
+      loadData();
+    };
+
+    // 點擊模態框外部關閉
+    document.getElementById('modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('show');
+        currentScan = null;
+      }
+    });
+  </script>
+</body>
+</html>
