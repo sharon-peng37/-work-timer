@@ -30,24 +30,30 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     }
 
-    /* 登入畫面 */
+    /* 登入畫面 - 白色文字 */
     .login-screen {
       max-width: 500px;
       margin: 50px auto;
       text-align: center;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
 
     .login-screen h1 {
-      color: #667eea;
+      color: white;
       margin-bottom: 30px;
       font-size: 32px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
 
     .login-tabs {
       display: flex;
       gap: 10px;
       margin-bottom: 30px;
-      border-bottom: 2px solid #ddd;
+      border-bottom: 2px solid rgba(255,255,255,0.3);
     }
 
     .login-tab {
@@ -58,14 +64,19 @@
       cursor: pointer;
       font-size: 16px;
       font-weight: bold;
-      color: #666;
+      color: rgba(255, 255, 255, 0.7);
       border-bottom: 3px solid transparent;
       transition: all 0.3s;
     }
 
     .login-tab.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
+      color: white;
+      border-bottom-color: white;
+      text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+
+    .login-tab:hover {
+      color: white;
     }
 
     .login-content {
@@ -74,32 +85,6 @@
 
     .login-content.active {
       display: block;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: bold;
-      color: #333;
-    }
-
-    input[type="text"], select {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: border 0.3s;
-    }
-
-    input[type="text"]:focus, select:focus {
-      outline: none;
-      border-color: #667eea;
     }
 
     /* 使用者資訊卡片 */
@@ -136,6 +121,35 @@
 
     .btn-logout:hover {
       background: rgba(255,255,255,0.3);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border 0.3s;
+      background: rgba(255,255,255,0.95);
+    }
+
+    input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: white;
+      box-shadow: 0 0 10px rgba(255,255,255,0.5);
     }
 
     h1 {
@@ -245,12 +259,16 @@
       color: white;
     }
 
-    #reader {
+    #reader, #loginReader {
       border: 2px solid #ddd;
       border-radius: 10px;
       overflow: hidden;
       margin-bottom: 20px;
       max-width: 100%;
+    }
+
+    #loginReader {
+      border-color: rgba(255,255,255,0.3);
     }
 
     .status {
@@ -261,6 +279,12 @@
       text-align: center;
       font-size: 18px;
       font-weight: bold;
+    }
+
+    #loginStatus {
+      color: white;
+      background: rgba(255,255,255,0.2);
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     }
 
     .status.scanning {
@@ -283,6 +307,11 @@
       padding: 20px;
       border-radius: 10px;
       margin-bottom: 20px;
+    }
+
+    .barcode-generator label {
+      color: #333;
+      text-shadow: none;
     }
 
     .barcode-list {
@@ -463,6 +492,10 @@
         gap: 15px;
         text-align: center;
       }
+
+      .login-screen {
+        padding: 30px 20px;
+      }
     }
   </style>
 </head>
@@ -486,11 +519,11 @@
         <label>部門代號 *</label>
         <select id="deptCode">
           <option value="">請選擇部門</option>
-          <option value="PROD">生產部 (PROD)</option>
-          <option value="QC">品管部 (QC)</option>
-          <option value="MAINT">維修部 (MAINT)</option>
-          <option value="PACK">包裝部 (PACK)</option>
-          <option value="SHIP">出貨部 (SHIP)</option>
+          <option value="CM03">SMT (CM03)</option>
+          <option value="CM04">測試 (CM04)</option>
+          <option value="CM05">包裝 (CM05)</option>
+          <option value="CM06">維修 (CM06)</option>
+          <option value="CM02">廠務管理部 (CM02)</option>
         </select>
       </div>
       <div class="form-group">
@@ -522,7 +555,7 @@
       <div class="user-details">
         <h3 id="displayName">王小明</h3>
         <p id="displayEmpId">工號: E001</p>
-        <p id="displayDept">部門: 生產部 (PROD)</p>
+        <p id="displayDept">部門: SMT (CM03)</p>
       </div>
       <button class="btn-logout" onclick="logout()">🚪 登出</button>
     </div>
@@ -576,7 +609,7 @@
         <h2>產生員工條碼</h2>
         <p style="color: #666; margin-bottom: 20px;">
           員工條碼格式: EMP-工號-部門-姓名<br>
-          例如: EMP-E001-PROD-王小明
+          例如: EMP-E001-CM03-王小明
         </p>
         <div class="form-group">
           <label>員工工號:</label>
@@ -585,11 +618,11 @@
         <div class="form-group">
           <label>部門代號:</label>
           <select id="empBarcodeDept">
-            <option value="PROD">生產部 (PROD)</option>
-            <option value="QC">品管部 (QC)</option>
-            <option value="MAINT">維修部 (MAINT)</option>
-            <option value="PACK">包裝部 (PACK)</option>
-            <option value="SHIP">出貨部 (SHIP)</option>
+            <option value="CM03">SMT (CM03)</option>
+            <option value="CM04">測試 (CM04)</option>
+            <option value="CM05">包裝 (CM05)</option>
+            <option value="CM06">維修 (CM06)</option>
+            <option value="CM02">廠務管理部 (CM02)</option>
           </select>
         </div>
         <div class="form-group">
@@ -641,7 +674,6 @@
       document.getElementById(tabName === 'manual' ? 'manualLogin' : 'scanLogin').classList.add('active');
       event.target.classList.add('active');
 
-      // 切換到掃描時停止之前的掃描器
       if (tabName === 'manual' && isEmployeeScanning) {
         stopEmployeeScanner();
       }
@@ -688,7 +720,7 @@
           { facingMode: "environment" },
           config,
           onEmployeeScanSuccess,
-          () => {} // 忽略錯誤
+          () => {}
         );
 
         isEmployeeScanning = true;
@@ -716,7 +748,6 @@
       console.log("掃描到員工證:", decodedText);
       stopEmployeeScanner();
 
-      // 解析員工條碼格式: EMP-E001-PROD-王小明
       if (decodedText.startsWith('EMP-')) {
         const parts = decodedText.split('-');
         if (parts.length === 4) {
@@ -740,17 +771,12 @@
         loginTime: new Date().toISOString()
       };
 
-      // 儲存登入資訊
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-      // 顯示主系統
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'block';
 
-      // 更新使用者資訊顯示
       updateUserDisplay();
-
-      // 載入資料
       loadData();
 
       alert(`✓ 歡迎 ${empName}!`);
@@ -760,11 +786,11 @@
       if (!currentUser) return;
 
       const deptNames = {
-        'PROD': '生產部',
-        'QC': '品管部',
-        'MAINT': '維修部',
-        'PACK': '包裝部',
-        'SHIP': '出貨部'
+        'CM03': 'SMT',
+        'CM04': '測試',
+        'CM05': '包裝',
+        'CM06': '維修',
+        'CM02': '廠務管理部'
       };
 
       document.getElementById('displayName').textContent = currentUser.empName;
@@ -775,19 +801,15 @@
 
     function logout() {
       if (confirm('確定要登出嗎?')) {
-        // 停止所有掃描器
         if (isScanning) stopScanner();
         if (isEmployeeScanning) stopEmployeeScanner();
 
-        // 清除登入資訊
         currentUser = null;
         localStorage.removeItem('currentUser');
 
-        // 顯示登入畫面
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('loginScreen').style.display = 'block';
 
-        // 清空輸入欄位
         document.getElementById('empId').value = '';
         document.getElementById('deptCode').value = '';
         document.getElementById('empName').value = '';
@@ -932,7 +954,6 @@
         return;
       }
 
-      // 員工條碼格式: EMP-工號-部門-姓名
       const empBarcode = `EMP-${empId}-${deptCode}-${empName}`;
 
       if (employeeBarcodes.includes(empBarcode)) {
@@ -943,7 +964,6 @@
       employeeBarcodes.push(empBarcode);
       displayEmployeeBarcodes();
 
-      // 清空輸入
       document.getElementById('empBarcodeId').value = '';
       document.getElementById('empBarcodeName').value = '';
     }
@@ -964,13 +984,21 @@
         const deptCode = parts[2];
         const empName = parts[3];
 
+        const deptNames = {
+          'CM03': 'SMT',
+          'CM04': '測試',
+          'CM05': '包裝',
+          'CM06': '維修',
+          'CM02': '廠務管理部'
+        };
+
         const div = document.createElement('div');
         div.className = 'barcode-item';
         div.innerHTML = `
           <h3>${empName}</h3>
           <svg id="emp-barcode-${index}"></svg>
           <p><strong>工號:</strong> ${empId}</p>
-          <p><strong>部門:</strong> ${deptCode}</p>
+          <p><strong>部門:</strong> ${deptNames[deptCode] || deptCode} (${deptCode})</p>
           <button class="btn-primary" onclick="printBarcode(${index}, 'emp')">🖨️ 列印條碼</button>
           <button class="btn-stop" onclick="removeEmployeeBarcode(${index})">🗑️ 刪除</button>
         `;
@@ -1047,7 +1075,7 @@
           { facingMode: "environment" },
           config,
           onScanSuccess,
-          () => {} // 忽略掃描錯誤
+          () => {}
         );
 
         isScanning = true;
@@ -1078,7 +1106,6 @@
     function onScanSuccess(decodedText) {
       console.log("掃描到:", decodedText);
       
-      // 如果掃到員工條碼,忽略
       if (decodedText.startsWith('EMP-')) {
         alert('這是員工條碼,請掃描工單條碼!');
         return;
@@ -1195,15 +1222,24 @@
           <tbody>
       `;
 
+      const deptNames = {
+        'CM03': 'SMT',
+        'CM04': '測試',
+        'CM05': '包裝',
+        'CM06': '維修',
+        'CM02': '廠務管理部'
+      };
+
       for (let i = workRecords.length - 1; i >= 0; i--) {
         const record = workRecords[i];
         const status = record.endTime ? '✅ 已完成' : '⏳ 進行中';
+        const deptDisplay = deptNames[record.deptCode] || record.deptCode;
         
         html += `
           <tr>
             <td><strong>${record.workOrderNo}</strong></td>
             <td>${record.empName}<br><small>${record.empId}</small></td>
-            <td>${record.deptCode}</td>
+            <td>${deptDisplay}</td>
             <td>${formatDateTime(new Date(record.startTime))}</td>
             <td>${record.endTime ? formatDateTime(new Date(record.endTime)) : '-'}</td>
             <td>${record.duration || '-'}</td>
@@ -1265,11 +1301,19 @@
         return;
       }
 
+      const deptNames = {
+        'CM03': 'SMT',
+        'CM04': '測試',
+        'CM05': '包裝',
+        'CM06': '維修',
+        'CM02': '廠務管理部'
+      };
+
       const data = workRecords.map(record => ({
         '工單號': record.workOrderNo,
         '員工工號': record.empId,
         '員工姓名': record.empName,
-        '部門': record.deptCode,
+        '部門': deptNames[record.deptCode] || record.deptCode,
         '開始時間': formatDateTime(new Date(record.startTime)),
         '結束時間': record.endTime ? formatDateTime(new Date(record.endTime)) : '尚未結束',
         '工作時長': record.duration || '計算中',
@@ -1281,7 +1325,7 @@
         { wch: 15 },
         { wch: 12 },
         { wch: 12 },
-        { wch: 10 },
+        { wch: 12 },
         { wch: 20 },
         { wch: 20 },
         { wch: 15 },
