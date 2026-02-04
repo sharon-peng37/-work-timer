@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>工單計時系統</title>
+  <title>工單計時系統 - 員工版</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -28,6 +28,114 @@
       border-radius: 15px;
       padding: 30px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    /* 登入畫面 */
+    .login-screen {
+      max-width: 500px;
+      margin: 50px auto;
+      text-align: center;
+    }
+
+    .login-screen h1 {
+      color: #667eea;
+      margin-bottom: 30px;
+      font-size: 32px;
+    }
+
+    .login-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .login-tab {
+      flex: 1;
+      padding: 15px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .login-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .login-content {
+      display: none;
+    }
+
+    .login-content.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border 0.3s;
+    }
+
+    input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    /* 使用者資訊卡片 */
+    .user-info {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .user-details {
+      flex: 1;
+    }
+
+    .user-details h3 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    .user-details p {
+      opacity: 0.9;
+      margin: 3px 0;
+    }
+
+    .btn-logout {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid white;
+    }
+
+    .btn-logout:hover {
+      background: rgba(255,255,255,0.3);
     }
 
     h1 {
@@ -175,30 +283,6 @@
       padding: 20px;
       border-radius: 10px;
       margin-bottom: 20px;
-    }
-
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-      color: #333;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      border: 2px solid #ddd;
-      border-radius: 5px;
-      font-size: 16px;
-    }
-
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #667eea;
     }
 
     .barcode-list {
@@ -373,20 +457,87 @@
         padding: 8px;
         font-size: 14px;
       }
+
+      .user-info {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <!-- 登入畫面 -->
+  <div id="loginScreen" class="login-screen">
+    <h1>👤 員工登入</h1>
+    
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="switchLoginTab('manual')">📝 手動輸入</button>
+      <button class="login-tab" onclick="switchLoginTab('scan')">📷 掃描條碼</button>
+    </div>
+
+    <!-- 手動輸入登入 -->
+    <div id="manualLogin" class="login-content active">
+      <div class="form-group">
+        <label>員工工號 *</label>
+        <input type="text" id="empId" placeholder="例如: E001">
+      </div>
+      <div class="form-group">
+        <label>部門代號 *</label>
+        <select id="deptCode">
+          <option value="">請選擇部門</option>
+          <option value="PROD">生產部 (PROD)</option>
+          <option value="QC">品管部 (QC)</option>
+          <option value="MAINT">維修部 (MAINT)</option>
+          <option value="PACK">包裝部 (PACK)</option>
+          <option value="SHIP">出貨部 (SHIP)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>員工姓名 *</label>
+        <input type="text" id="empName" placeholder="例如: 王小明">
+      </div>
+      <button class="btn-primary" onclick="manualLogin()" style="width: 100%; margin-top: 20px;">
+        ✓ 登入系統
+      </button>
+    </div>
+
+    <!-- 掃描條碼登入 -->
+    <div id="scanLogin" class="login-content">
+      <div class="status" id="loginStatus">請點擊下方按鈕開始掃描員工證</div>
+      <button class="btn-start" onclick="startEmployeeScanner()" style="width: 100%; margin-bottom: 10px;">
+        📷 開始掃描員工證
+      </button>
+      <button class="btn-stop" onclick="stopEmployeeScanner()" style="width: 100%;">
+        ⏹️ 停止掃描
+      </button>
+      <div id="loginReader" style="margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- 主系統畫面 -->
+  <div id="mainApp" class="container" style="display: none;">
+    <!-- 員工資訊卡片 -->
+    <div class="user-info">
+      <div class="user-details">
+        <h3 id="displayName">王小明</h3>
+        <p id="displayEmpId">工號: E001</p>
+        <p id="displayDept">部門: 生產部 (PROD)</p>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 登出</button>
+    </div>
+
     <h1>📦 工單計時系統</h1>
-    <p class="subtitle">測試版 - 含條碼生成器</p>
+    <p class="subtitle">員工版 - 含條碼生成器</p>
 
     <div class="tabs">
       <button class="tab active" onclick="switchTab('generate')">🏷️ 生成條碼</button>
       <button class="tab" onclick="switchTab('scan')">📷 掃描計時</button>
       <button class="tab" onclick="switchTab('records')">📊 工作記錄</button>
+      <button class="tab" onclick="switchTab('empBarcode')">👤 員工條碼</button>
     </div>
 
+    <!-- 生成工單條碼 -->
     <div id="generate" class="tab-content active">
       <div class="barcode-generator">
         <h2>產生測試條碼</h2>
@@ -400,16 +551,17 @@
       <div id="barcodeList" class="barcode-list"></div>
     </div>
 
+    <!-- 掃描工單計時 -->
     <div id="scan" class="tab-content">
       <div class="controls">
         <button class="btn-start" onclick="requestCameraAndStart()">🎥 開始掃描</button>
         <button class="btn-stop" onclick="stopScanner()">⏹️ 停止掃描</button>
       </div>
-
       <div class="status" id="status">請點擊「開始掃描」並允許相機權限</div>
       <div id="reader"></div>
     </div>
 
+    <!-- 工作記錄 -->
     <div id="records" class="tab-content">
       <div class="controls">
         <button class="btn-export" onclick="exportToExcel()">📥 匯出 Excel</button>
@@ -417,13 +569,46 @@
       </div>
       <div id="recordsTable"></div>
     </div>
+
+    <!-- 員工條碼生成 -->
+    <div id="empBarcode" class="tab-content">
+      <div class="barcode-generator">
+        <h2>產生員工條碼</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+          員工條碼格式: EMP-工號-部門-姓名<br>
+          例如: EMP-E001-PROD-王小明
+        </p>
+        <div class="form-group">
+          <label>員工工號:</label>
+          <input type="text" id="empBarcodeId" placeholder="例如: E001">
+        </div>
+        <div class="form-group">
+          <label>部門代號:</label>
+          <select id="empBarcodeDept">
+            <option value="PROD">生產部 (PROD)</option>
+            <option value="QC">品管部 (QC)</option>
+            <option value="MAINT">維修部 (MAINT)</option>
+            <option value="PACK">包裝部 (PACK)</option>
+            <option value="SHIP">出貨部 (SHIP)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>員工姓名:</label>
+          <input type="text" id="empBarcodeName" placeholder="例如: 王小明">
+        </div>
+        <button class="btn-primary" onclick="generateEmployeeBarcode()">生成員工條碼</button>
+      </div>
+      <div id="empBarcodeList" class="barcode-list"></div>
+    </div>
   </div>
 
+  <!-- 確認對話框 -->
   <div class="modal" id="modal">
     <div class="modal-content">
       <h2 id="modalTitle"></h2>
       <p id="modalWorkOrder"></p>
       <p id="modalTime"></p>
+      <p id="modalEmployee"></p>
       <div class="modal-buttons">
         <button class="btn-start" onclick="confirmAction(true)">✓ 確認</button>
         <button class="btn-stop" onclick="confirmAction(false)">✗ 取消</button>
@@ -435,11 +620,181 @@
 
   <script>
     let html5QrCode;
+    let employeeScanner;
     let workRecords = [];
     let currentScan = null;
     let generatedBarcodes = [];
+    let employeeBarcodes = [];
     let isScanning = false;
+    let isEmployeeScanning = false;
+    let currentUser = null;
 
+    // ========== 登入相關 ==========
+    function switchLoginTab(tabName) {
+      document.querySelectorAll('.login-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.login-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      document.getElementById(tabName === 'manual' ? 'manualLogin' : 'scanLogin').classList.add('active');
+      event.target.classList.add('active');
+
+      // 切換到掃描時停止之前的掃描器
+      if (tabName === 'manual' && isEmployeeScanning) {
+        stopEmployeeScanner();
+      }
+    }
+
+    function manualLogin() {
+      const empId = document.getElementById('empId').value.trim();
+      const deptCode = document.getElementById('deptCode').value;
+      const empName = document.getElementById('empName').value.trim();
+
+      if (!empId || !deptCode || !empName) {
+        alert('❌ 請填寫所有必填欄位!');
+        return;
+      }
+
+      performLogin(empId, deptCode, empName);
+    }
+
+    async function startEmployeeScanner() {
+      const statusEl = document.getElementById('loginStatus');
+      
+      if (isEmployeeScanning) {
+        statusEl.textContent = '掃描器已經在運行中';
+        return;
+      }
+
+      try {
+        statusEl.textContent = '正在請求相機權限...';
+        statusEl.className = 'status scanning';
+
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "environment" } 
+        });
+        stream.getTracks().forEach(track => track.stop());
+
+        employeeScanner = new Html5Qrcode("loginReader");
+        
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        };
+
+        await employeeScanner.start(
+          { facingMode: "environment" },
+          config,
+          onEmployeeScanSuccess,
+          () => {} // 忽略錯誤
+        );
+
+        isEmployeeScanning = true;
+        statusEl.textContent = '✅ 掃描中...請對準員工證條碼';
+        statusEl.className = 'status success';
+        
+      } catch (err) {
+        console.error('相機啟動失敗:', err);
+        statusEl.textContent = `❌ 相機啟動失敗: ${err.message}`;
+        statusEl.className = 'status error';
+      }
+    }
+
+    function stopEmployeeScanner() {
+      if (employeeScanner && isEmployeeScanning) {
+        employeeScanner.stop().then(() => {
+          document.getElementById('loginStatus').textContent = '已停止掃描';
+          document.getElementById('loginStatus').className = 'status';
+          isEmployeeScanning = false;
+        });
+      }
+    }
+
+    function onEmployeeScanSuccess(decodedText) {
+      console.log("掃描到員工證:", decodedText);
+      stopEmployeeScanner();
+
+      // 解析員工條碼格式: EMP-E001-PROD-王小明
+      if (decodedText.startsWith('EMP-')) {
+        const parts = decodedText.split('-');
+        if (parts.length === 4) {
+          const empId = parts[1];
+          const deptCode = parts[2];
+          const empName = parts[3];
+          performLogin(empId, deptCode, empName);
+        } else {
+          alert('❌ 員工條碼格式錯誤!');
+        }
+      } else {
+        alert('❌ 這不是有效的員工條碼!');
+      }
+    }
+
+    function performLogin(empId, deptCode, empName) {
+      currentUser = {
+        empId: empId,
+        deptCode: deptCode,
+        empName: empName,
+        loginTime: new Date().toISOString()
+      };
+
+      // 儲存登入資訊
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+      // 顯示主系統
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+
+      // 更新使用者資訊顯示
+      updateUserDisplay();
+
+      // 載入資料
+      loadData();
+
+      alert(`✓ 歡迎 ${empName}!`);
+    }
+
+    function updateUserDisplay() {
+      if (!currentUser) return;
+
+      const deptNames = {
+        'PROD': '生產部',
+        'QC': '品管部',
+        'MAINT': '維修部',
+        'PACK': '包裝部',
+        'SHIP': '出貨部'
+      };
+
+      document.getElementById('displayName').textContent = currentUser.empName;
+      document.getElementById('displayEmpId').textContent = `工號: ${currentUser.empId}`;
+      document.getElementById('displayDept').textContent = 
+        `部門: ${deptNames[currentUser.deptCode] || currentUser.deptCode} (${currentUser.deptCode})`;
+    }
+
+    function logout() {
+      if (confirm('確定要登出嗎?')) {
+        // 停止所有掃描器
+        if (isScanning) stopScanner();
+        if (isEmployeeScanning) stopEmployeeScanner();
+
+        // 清除登入資訊
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+
+        // 顯示登入畫面
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'block';
+
+        // 清空輸入欄位
+        document.getElementById('empId').value = '';
+        document.getElementById('deptCode').value = '';
+        document.getElementById('empName').value = '';
+      }
+    }
+
+    // ========== 分頁切換 ==========
     function switchTab(tabName) {
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
@@ -453,9 +808,12 @@
 
       if (tabName === 'records') {
         displayRecords();
+      } else if (tabName === 'empBarcode') {
+        displayEmployeeBarcodes();
       }
     }
 
+    // ========== 工單條碼生成 ==========
     function generateBarcode() {
       const input = document.getElementById('workOrderInput');
       const workOrderNo = input.value.trim();
@@ -508,7 +866,7 @@
           <h3>工單 #${index + 1}</h3>
           <svg id="barcode-${index}"></svg>
           <p><strong>${workOrderNo}</strong></p>
-          <button class="btn-primary" onclick="printBarcode(${index})">🖨️ 列印此條碼</button>
+          <button class="btn-primary" onclick="printBarcode(${index}, 'work')">🖨️ 列印此條碼</button>
           <button class="btn-stop" onclick="removeBarcode(${index})">🗑️ 刪除</button>
         `;
         container.appendChild(div);
@@ -531,18 +889,27 @@
       displayBarcodes();
     }
 
-    function printBarcode(index) {
-      const workOrderNo = generatedBarcodes[index];
+    function printBarcode(index, type) {
       const printArea = document.getElementById('printArea');
+      let barcodeData, title;
+
+      if (type === 'work') {
+        barcodeData = generatedBarcodes[index];
+        title = '工單條碼';
+      } else {
+        barcodeData = employeeBarcodes[index];
+        title = '員工條碼';
+      }
       
       printArea.innerHTML = `
         <div style="text-align: center; padding: 50px;">
-          <h2>${workOrderNo}</h2>
+          <h2>${title}</h2>
           <svg id="print-barcode"></svg>
+          <p style="margin-top: 20px; font-size: 18px;">${barcodeData}</p>
         </div>
       `;
 
-      JsBarcode('#print-barcode', workOrderNo, {
+      JsBarcode('#print-barcode', barcodeData, {
         format: "CODE128",
         width: 3,
         height: 100,
@@ -554,7 +921,80 @@
       window.print();
     }
 
-    // 修改後的相機啟動函數 - 增強手機兼容性
+    // ========== 員工條碼生成 ==========
+    function generateEmployeeBarcode() {
+      const empId = document.getElementById('empBarcodeId').value.trim();
+      const deptCode = document.getElementById('empBarcodeDept').value;
+      const empName = document.getElementById('empBarcodeName').value.trim();
+
+      if (!empId || !deptCode || !empName) {
+        alert('請填寫所有欄位!');
+        return;
+      }
+
+      // 員工條碼格式: EMP-工號-部門-姓名
+      const empBarcode = `EMP-${empId}-${deptCode}-${empName}`;
+
+      if (employeeBarcodes.includes(empBarcode)) {
+        alert('此員工條碼已經生成過了!');
+        return;
+      }
+
+      employeeBarcodes.push(empBarcode);
+      displayEmployeeBarcodes();
+
+      // 清空輸入
+      document.getElementById('empBarcodeId').value = '';
+      document.getElementById('empBarcodeName').value = '';
+    }
+
+    function displayEmployeeBarcodes() {
+      const container = document.getElementById('empBarcodeList');
+      
+      if (employeeBarcodes.length === 0) {
+        container.innerHTML = '<div class="empty-state">尚未生成任何員工條碼</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      employeeBarcodes.forEach((empBarcode, index) => {
+        const parts = empBarcode.split('-');
+        const empId = parts[1];
+        const deptCode = parts[2];
+        const empName = parts[3];
+
+        const div = document.createElement('div');
+        div.className = 'barcode-item';
+        div.innerHTML = `
+          <h3>${empName}</h3>
+          <svg id="emp-barcode-${index}"></svg>
+          <p><strong>工號:</strong> ${empId}</p>
+          <p><strong>部門:</strong> ${deptCode}</p>
+          <button class="btn-primary" onclick="printBarcode(${index}, 'emp')">🖨️ 列印條碼</button>
+          <button class="btn-stop" onclick="removeEmployeeBarcode(${index})">🗑️ 刪除</button>
+        `;
+        container.appendChild(div);
+
+        JsBarcode(`#emp-barcode-${index}`, empBarcode, {
+          format: "CODE128",
+          width: 2,
+          height: 80,
+          displayValue: true,
+          fontSize: 14,
+          margin: 10
+        });
+      });
+      
+      saveData();
+    }
+
+    function removeEmployeeBarcode(index) {
+      employeeBarcodes.splice(index, 1);
+      displayEmployeeBarcodes();
+    }
+
+    // ========== 工單掃描計時 ==========
     async function requestCameraAndStart() {
       const statusEl = document.getElementById('status');
       
@@ -568,15 +1008,11 @@
         statusEl.textContent = '正在請求相機權限...';
         statusEl.className = 'status scanning';
 
-        // 先測試是否有相機權限
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: "environment" } 
         });
-        
-        // 立即釋放測試用的stream
         stream.getTracks().forEach(track => track.stop());
 
-        // 權限獲得後再啟動掃描器
         await startScanner();
         
       } catch (err) {
@@ -611,7 +1047,7 @@
           { facingMode: "environment" },
           config,
           onScanSuccess,
-          onScanError
+          () => {} // 忽略掃描錯誤
         );
 
         isScanning = true;
@@ -642,6 +1078,12 @@
     function onScanSuccess(decodedText) {
       console.log("掃描到:", decodedText);
       
+      // 如果掃到員工條碼,忽略
+      if (decodedText.startsWith('EMP-')) {
+        alert('這是員工條碼,請掃描工單條碼!');
+        return;
+      }
+
       stopScanner();
       
       const existingRecord = workRecords.find(r => 
@@ -656,15 +1098,12 @@
       showModal(decodedText, !existingRecord);
     }
 
-    function onScanError(error) {
-      // 忽略掃描錯誤
-    }
-
     function showModal(workOrderNo, isStart) {
       const modal = document.getElementById('modal');
       const title = document.getElementById('modalTitle');
       const workOrder = document.getElementById('modalWorkOrder');
       const time = document.getElementById('modalTime');
+      const employee = document.getElementById('modalEmployee');
 
       const now = new Date();
       const timeStr = formatDateTime(now);
@@ -679,6 +1118,7 @@
         time.textContent = `結束時間: ${timeStr}`;
       }
 
+      employee.textContent = `操作員: ${currentUser.empName} (${currentUser.empId})`;
       modal.classList.add('show');
     }
 
@@ -697,6 +1137,9 @@
       if (isStart) {
         workRecords.push({
           workOrderNo: workOrderNo,
+          empId: currentUser.empId,
+          empName: currentUser.empName,
+          deptCode: currentUser.deptCode,
           startTime: now.toISOString(),
           endTime: null,
           duration: null
@@ -727,6 +1170,7 @@
       currentScan = null;
     }
 
+    // ========== 工作記錄 ==========
     function displayRecords() {
       const container = document.getElementById('recordsTable');
       
@@ -740,6 +1184,8 @@
           <thead>
             <tr>
               <th>工單號</th>
+              <th>員工</th>
+              <th>部門</th>
               <th>開始時間</th>
               <th>結束時間</th>
               <th>工作時長</th>
@@ -756,6 +1202,8 @@
         html += `
           <tr>
             <td><strong>${record.workOrderNo}</strong></td>
+            <td>${record.empName}<br><small>${record.empId}</small></td>
+            <td>${record.deptCode}</td>
             <td>${formatDateTime(new Date(record.startTime))}</td>
             <td>${record.endTime ? formatDateTime(new Date(record.endTime)) : '-'}</td>
             <td>${record.duration || '-'}</td>
@@ -779,9 +1227,12 @@
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
 
+    // ========== 資料儲存 ==========
     function loadData() {
       const savedRecords = localStorage.getItem('workRecords');
       const savedBarcodes = localStorage.getItem('generatedBarcodes');
+      const savedEmpBarcodes = localStorage.getItem('employeeBarcodes');
+      const savedUser = localStorage.getItem('currentUser');
       
       if (savedRecords) {
         workRecords = JSON.parse(savedRecords);
@@ -790,13 +1241,24 @@
         generatedBarcodes = JSON.parse(savedBarcodes);
         displayBarcodes();
       }
+      if (savedEmpBarcodes) {
+        employeeBarcodes = JSON.parse(savedEmpBarcodes);
+      }
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        updateUserDisplay();
+      }
     }
 
     function saveData() {
       localStorage.setItem('workRecords', JSON.stringify(workRecords));
       localStorage.setItem('generatedBarcodes', JSON.stringify(generatedBarcodes));
+      localStorage.setItem('employeeBarcodes', JSON.stringify(employeeBarcodes));
     }
 
+    // ========== Excel 匯出 ==========
     function exportToExcel() {
       if (workRecords.length === 0) {
         alert('沒有資料可以匯出!');
@@ -805,6 +1267,9 @@
 
       const data = workRecords.map(record => ({
         '工單號': record.workOrderNo,
+        '員工工號': record.empId,
+        '員工姓名': record.empName,
+        '部門': record.deptCode,
         '開始時間': formatDateTime(new Date(record.startTime)),
         '結束時間': record.endTime ? formatDateTime(new Date(record.endTime)) : '尚未結束',
         '工作時長': record.duration || '計算中',
@@ -814,6 +1279,9 @@
       const ws = XLSX.utils.json_to_sheet(data);
       ws['!cols'] = [
         { wch: 15 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 10 },
         { wch: 20 },
         { wch: 20 },
         { wch: 15 },
@@ -838,6 +1306,7 @@
       }
     }
 
+    // ========== 初始化 ==========
     window.onload = function() {
       loadData();
     };
@@ -849,10 +1318,12 @@
       }
     });
 
-    // 頁面卸載時清理
     window.addEventListener('beforeunload', function() {
       if (isScanning && html5QrCode) {
         html5QrCode.stop();
+      }
+      if (isEmployeeScanning && employeeScanner) {
+        employeeScanner.stop();
       }
     });
   </script>
