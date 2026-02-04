@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>工單計時系統 - 測試版</title>
+  <title>工單計時系統</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -47,6 +47,7 @@
       gap: 10px;
       margin-bottom: 20px;
       border-bottom: 2px solid #ddd;
+      flex-wrap: wrap;
     }
 
     .tab {
@@ -141,6 +142,7 @@
       border-radius: 10px;
       overflow: hidden;
       margin-bottom: 20px;
+      max-width: 100%;
     }
 
     .status {
@@ -158,7 +160,16 @@
       color: #856404;
     }
 
-    /* 條碼生成區 */
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
     .barcode-generator {
       background: #f8f9fa;
       padding: 20px;
@@ -213,6 +224,7 @@
 
     .barcode-item svg {
       margin: 15px 0;
+      max-width: 100%;
     }
 
     .barcode-item button {
@@ -224,12 +236,21 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
+      overflow-x: auto;
+      display: block;
+    }
+
+    thead, tbody {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
     }
 
     th, td {
       padding: 12px;
       text-align: left;
       border-bottom: 1px solid #ddd;
+      word-wrap: break-word;
     }
 
     th {
@@ -266,6 +287,7 @@
       text-align: center;
       max-width: 400px;
       animation: slideIn 0.3s;
+      margin: 20px;
     }
 
     @keyframes slideIn {
@@ -327,6 +349,31 @@
         display: block;
       }
     }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+
+      .tab {
+        padding: 10px 15px;
+        font-size: 14px;
+      }
+
+      button {
+        padding: 10px 15px;
+        font-size: 14px;
+      }
+
+      .modal-content {
+        padding: 30px 20px;
+      }
+
+      th, td {
+        padding: 8px;
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -334,14 +381,12 @@
     <h1>📦 工單計時系統</h1>
     <p class="subtitle">測試版 - 含條碼生成器</p>
 
-    <!-- 分頁標籤 -->
     <div class="tabs">
       <button class="tab active" onclick="switchTab('generate')">🏷️ 生成條碼</button>
       <button class="tab" onclick="switchTab('scan')">📷 掃描計時</button>
       <button class="tab" onclick="switchTab('records')">📊 工作記錄</button>
     </div>
 
-    <!-- 分頁 1: 生成條碼 -->
     <div id="generate" class="tab-content active">
       <div class="barcode-generator">
         <h2>產生測試條碼</h2>
@@ -352,22 +397,19 @@
         <button class="btn-primary" onclick="generateBarcode()">生成條碼</button>
         <button class="btn-primary" onclick="generateMultiple()">生成5個測試條碼</button>
       </div>
-
       <div id="barcodeList" class="barcode-list"></div>
     </div>
 
-    <!-- 分頁 2: 掃描計時 -->
     <div id="scan" class="tab-content">
       <div class="controls">
-        <button class="btn-start" onclick="startScanner()">🎥 開始掃描</button>
+        <button class="btn-start" onclick="requestCameraAndStart()">🎥 開始掃描</button>
         <button class="btn-stop" onclick="stopScanner()">⏹️ 停止掃描</button>
       </div>
 
-      <div class="status" id="status">請點擊「開始掃描」</div>
+      <div class="status" id="status">請點擊「開始掃描」並允許相機權限</div>
       <div id="reader"></div>
     </div>
 
-    <!-- 分頁 3: 工作記錄 -->
     <div id="records" class="tab-content">
       <div class="controls">
         <button class="btn-export" onclick="exportToExcel()">📥 匯出 Excel</button>
@@ -377,7 +419,6 @@
     </div>
   </div>
 
-  <!-- 確認對話框 -->
   <div class="modal" id="modal">
     <div class="modal-content">
       <h2 id="modalTitle"></h2>
@@ -390,7 +431,6 @@
     </div>
   </div>
 
-  <!-- 列印區域 -->
   <div class="print-area" id="printArea"></div>
 
   <script>
@@ -398,10 +438,9 @@
     let workRecords = [];
     let currentScan = null;
     let generatedBarcodes = [];
+    let isScanning = false;
 
-    // ========== 分頁切換 ==========
     function switchTab(tabName) {
-      // 隱藏所有分頁
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
       });
@@ -409,17 +448,14 @@
         tab.classList.remove('active');
       });
 
-      // 顯示選中的分頁
       document.getElementById(tabName).classList.add('active');
       event.target.classList.add('active');
 
-      // 如果切換到記錄頁,更新顯示
       if (tabName === 'records') {
         displayRecords();
       }
     }
 
-    // ========== 條碼生成 ==========
     function generateBarcode() {
       const input = document.getElementById('workOrderInput');
       const workOrderNo = input.value.trim();
@@ -446,7 +482,6 @@
     }
 
     function addBarcodeToList(workOrderNo) {
-      // 檢查是否已存在
       if (generatedBarcodes.includes(workOrderNo)) {
         alert('此工單號已經生成過了!');
         return;
@@ -478,7 +513,6 @@
         `;
         container.appendChild(div);
 
-        // 生成條碼
         JsBarcode(`#barcode-${index}`, workOrderNo, {
           format: "CODE128",
           width: 2,
@@ -488,6 +522,8 @@
           margin: 10
         });
       });
+      
+      saveData();
     }
 
     function removeBarcode(index) {
@@ -518,34 +554,87 @@
       window.print();
     }
 
-    // ========== 掃描功能 ==========
-    function startScanner() {
+    // 修改後的相機啟動函數 - 增強手機兼容性
+    async function requestCameraAndStart() {
       const statusEl = document.getElementById('status');
-      statusEl.textContent = '掃描中...請對準條碼';
-      statusEl.className = 'status scanning';
-
-      html5QrCode = new Html5Qrcode("reader");
       
-      html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 300, height: 150 }
-        },
-        onScanSuccess,
-        onScanError
-      ).catch(err => {
-        alert("無法啟動相機: " + err);
-        statusEl.textContent = '相機啟動失敗';
+      if (isScanning) {
+        statusEl.textContent = '掃描器已經在運行中';
         statusEl.className = 'status';
-      });
+        return;
+      }
+
+      try {
+        statusEl.textContent = '正在請求相機權限...';
+        statusEl.className = 'status scanning';
+
+        // 先測試是否有相機權限
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "environment" } 
+        });
+        
+        // 立即釋放測試用的stream
+        stream.getTracks().forEach(track => track.stop());
+
+        // 權限獲得後再啟動掃描器
+        await startScanner();
+        
+      } catch (err) {
+        console.error('相機錯誤:', err);
+        statusEl.className = 'status error';
+        
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          statusEl.textContent = '❌ 相機權限被拒絕!請在瀏覽器設定中允許相機權限';
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          statusEl.textContent = '❌ 找不到相機設備';
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          statusEl.textContent = '❌ 相機正在被其他應用使用';
+        } else {
+          statusEl.textContent = `❌ 相機啟動失敗: ${err.message}`;
+        }
+      }
+    }
+
+    async function startScanner() {
+      const statusEl = document.getElementById('status');
+      
+      try {
+        html5QrCode = new Html5Qrcode("reader");
+        
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        };
+
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          onScanSuccess,
+          onScanError
+        );
+
+        isScanning = true;
+        statusEl.textContent = '✅ 掃描中...請對準條碼';
+        statusEl.className = 'status success';
+        
+      } catch (err) {
+        console.error('啟動掃描器失敗:', err);
+        statusEl.textContent = `❌ 啟動失敗: ${err}`;
+        statusEl.className = 'status error';
+        isScanning = false;
+      }
     }
 
     function stopScanner() {
-      if (html5QrCode) {
+      if (html5QrCode && isScanning) {
         html5QrCode.stop().then(() => {
           document.getElementById('status').textContent = '已停止掃描';
           document.getElementById('status').className = 'status';
+          isScanning = false;
+        }).catch(err => {
+          console.error('停止掃描器失敗:', err);
+          isScanning = false;
         });
       }
     }
@@ -553,10 +642,8 @@
     function onScanSuccess(decodedText) {
       console.log("掃描到:", decodedText);
       
-      // 停止掃描
       stopScanner();
       
-      // 檢查是否已有此工單的開始記錄
       const existingRecord = workRecords.find(r => 
         r.workOrderNo === decodedText && !r.endTime
       );
@@ -570,10 +657,9 @@
     }
 
     function onScanError(error) {
-      // 忽略掃描錯誤(持續掃描中)
+      // 忽略掃描錯誤
     }
 
-    // ========== 對話框 ==========
     function showModal(workOrderNo, isStart) {
       const modal = document.getElementById('modal');
       const title = document.getElementById('modalTitle');
@@ -609,7 +695,6 @@
       const { workOrderNo, isStart } = currentScan;
 
       if (isStart) {
-        // 新增開始記錄
         workRecords.push({
           workOrderNo: workOrderNo,
           startTime: now.toISOString(),
@@ -619,7 +704,6 @@
         
         alert(`✓ 已記錄工單 ${workOrderNo} 開始時間`);
       } else {
-        // 更新結束時間
         const record = workRecords.find(r => 
           r.workOrderNo === workOrderNo && !r.endTime
         );
@@ -627,7 +711,6 @@
         if (record) {
           record.endTime = now.toISOString();
           
-          // 計算工作時長
           const start = new Date(record.startTime);
           const end = new Date(record.endTime);
           const durationMs = end - start;
@@ -644,7 +727,6 @@
       currentScan = null;
     }
 
-    // ========== 記錄管理 ==========
     function displayRecords() {
       const container = document.getElementById('recordsTable');
       
@@ -667,7 +749,6 @@
           <tbody>
       `;
 
-      // 反向顯示(最新的在上面)
       for (let i = workRecords.length - 1; i >= 0; i--) {
         const record = workRecords[i];
         const status = record.endTime ? '✅ 已完成' : '⏳ 進行中';
@@ -683,11 +764,7 @@
         `;
       }
 
-      html += `
-          </tbody>
-        </table>
-      `;
-
+      html += `</tbody></table>`;
       container.innerHTML = html;
     }
 
@@ -702,7 +779,6 @@
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
 
-    // ========== 資料儲存 ==========
     function loadData() {
       const savedRecords = localStorage.getItem('workRecords');
       const savedBarcodes = localStorage.getItem('generatedBarcodes');
@@ -721,7 +797,6 @@
       localStorage.setItem('generatedBarcodes', JSON.stringify(generatedBarcodes));
     }
 
-    // ========== Excel 匯出 ==========
     function exportToExcel() {
       if (workRecords.length === 0) {
         alert('沒有資料可以匯出!');
@@ -763,16 +838,21 @@
       }
     }
 
-    // ========== 初始化 ==========
     window.onload = function() {
       loadData();
     };
 
-    // 點擊模態框外部關閉
     document.getElementById('modal').addEventListener('click', function(e) {
       if (e.target === this) {
         this.classList.remove('show');
         currentScan = null;
+      }
+    });
+
+    // 頁面卸載時清理
+    window.addEventListener('beforeunload', function() {
+      if (isScanning && html5QrCode) {
+        html5QrCode.stop();
       }
     });
   </script>
